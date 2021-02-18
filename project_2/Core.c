@@ -85,6 +85,7 @@ bool tickFunc(Core *core)
     // (Step 4) Memory access
     //printf("Step 4\n");
     Signal readMem;
+    //Probably broken.
     if (signals->MemWrite == 1)
     {
         printf("Storing %d in memory location %d\n",readReg2, ALU_result*4);
@@ -213,6 +214,11 @@ Signal ImmeGen(Signal input)
     if (opcode == 3 || opcode == 19) 
     {
         immediate = (uint16_t)((input & 4293918720) >> 20);
+        unsigned signbit = (immediate & 2048) >> 11;
+        immediate |= signbit << 12;
+        immediate |= signbit << 13;
+        immediate |= signbit << 14;
+        immediate |= signbit << 15;
     }
     else if (opcode == 99) 
     {
