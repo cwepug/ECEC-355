@@ -1,0 +1,18 @@
+matrix_opr: beq x5, x7, exit         // if i == 4, exit main loop 
+            slli x28, x5, 3          // i * 8 -> x28 for indexing out[]
+            sd x0, 128(x28)          // store zero at memory offset 128 from x28 (out[] array)
+            ld x31, 128(x28)         // load zero from out[i] to x31
+loop:       slli x29, x5, 2          // i * 4 -> x29 for indexing mat[]
+            add x12, x6, x29         // x12 = j + i*4
+            slli x12, x12, 3         // x12 = [i*4 + j] * 8
+            ld x30, 0(x12)           // x30 = mat[i*4 + j]
+            sll x30, x30, x5         // x30 = shift(value of x30, i )
+            add x31, x31, x30        // x31 = x31 + x30 
+            sd x31, 128(x28)         // store x31 to out[i]
+            addi x6, x6, 1           // j++
+            beq x6, x7, reset        // if j == 4, jump to reset 
+            beq x0, x0, loop         // if j != 4, arrive here and run inner loop again
+reset:      addi x5, x5, 1           // if j == 4, arrive here, i++
+            add x6, x0, x0           // force x6 (j) back to zero
+            beq x0, x0, matrix_opr   // jump back to top with fresh j and i++      
+exit:
