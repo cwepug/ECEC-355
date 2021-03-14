@@ -580,47 +580,76 @@ Signal ALUControlUnit(Signal ALUOp,
 }
 
 // FIXME (3). Imme. Generator
+// Signal ImmeGen(Signal input)
+// {
+//     int16_t immediate = 0;
+//     Signal opcode = (input & 127);
+
+//     if (opcode == 3 || opcode == 19) 
+//     {
+//         immediate = (int16_t)((input & 4293918720) >> 20);
+//         unsigned signbit = (immediate & 2048) >> 11;
+//         immediate |= signbit << 12;
+//         immediate |= signbit << 13;
+//         immediate |= signbit << 14;
+//         immediate |= signbit << 15;
+//     }
+//     else if (opcode == 99)
+//     {
+//         unsigned oneToFour = (input & 3840) >> 8;
+//         unsigned fiveToTen = (input & 2113929216) >> 25;
+//         unsigned eleven = (input & 128) >> 7;
+//         unsigned twelve = (input & 2147483648) >> 31;
+
+//         immediate |= oneToFour << 1;
+//         immediate |= fiveToTen << 5;
+//         immediate |= eleven << 10;
+//         immediate |= twelve << 11;
+//         immediate |= twelve << 12;
+//         immediate |= twelve << 13;
+//         immediate |= twelve << 14;
+//         immediate |= twelve << 15;
+
+//     }
+//     else if (opcode == 35) 
+//     {
+//         unsigned zeroToFour = (input & 3968) >> 7;
+//         unsigned fiveToEleven = (input & 4261412864) >> 25;
+
+//         immediate |= zeroToFour;
+//         immediate |= fiveToEleven << 5;     
+
+//     }
+//     return (Signal)immediate; //This is kind of evil
+// }
+
 Signal ImmeGen(Signal input)
 {
-    int16_t immediate = 0;
-    Signal opcode = (input & 127);
-
-    if (opcode == 3 || opcode == 19) 
-    {
-        immediate = (int16_t)((input & 4293918720) >> 20);
-        unsigned signbit = (immediate & 2048) >> 11;
-        immediate |= signbit << 12;
-        immediate |= signbit << 13;
-        immediate |= signbit << 14;
-        immediate |= signbit << 15;
+    Signal imm = 0;
+    /* opcode bit 6 is 1 for conditional branch, and 0 for data transfer */
+    if((input & 0x0000000000000040)) {
+        /* conditional branches (SB-type) */
+        imm = ((input & 0x0000000000000F00) >> 7) | ((input & 0x000000007E000000) >> 20) |
+              ((input & 0x0000000000000080) << 4) | ((input & 0x0000000080000000) >> 19);
     }
-    else if (opcode == 99)
-    {
-        unsigned oneToFour = (input & 3840) >> 8;
-        unsigned fiveToTen = (input & 2113929216) >> 25;
-        unsigned eleven = (input & 128) >> 7;
-        unsigned twelve = (input & 2147483648) >> 31;
+    else {
+        /* data transfer */
 
-        immediate |= oneToFour << 1;
-        immediate |= fiveToTen << 5;
-        immediate |= eleven << 10;
-        immediate |= twelve << 11;
-        immediate |= twelve << 12;
-        immediate |= twelve << 13;
-        immediate |= twelve << 14;
-        immediate |= twelve << 15;
-
+        /* opcode bit 5 is 1 for store, and 0 for load */
+        if((input & 0x0000000000000020)) {
+            /* store (S-type) */
+            imm = ((input & 0x00000000FE000000) >> 20) | ((input & 0x0000000000000F80) >> 7);
+        }
+        else {
+            /* load (I-type) */
+            imm = ((input & 0x00000000FFF00000) >> 20);
+        }
     }
-    else if (opcode == 35) 
-    {
-        unsigned zeroToFour = (input & 3968) >> 7;
-        unsigned fiveToEleven = (input & 4261412864) >> 25;
-
-        immediate |= zeroToFour;
-        immediate |= fiveToEleven << 5;     
-
+    /* IF MSB OF IMMEDIATE IS 1 (NEGATIVE) - THEN MAKE ALL HIGHER ORDER BITS 1 */
+    if ((input & 0x0000000080000000)) {
+        imm |= 0xFFFFFFFFFFFFF000;
     }
-    return (Signal)immediate; //This is kind of evil
+    return imm;
 }
 
 // FIXME (4). ALU
